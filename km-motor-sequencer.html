@@ -1,0 +1,517 @@
+<script type="text/javascript">
+    RED.nodes.registerType('km-motor-sequencer',{
+        category: 'Keigan Motor',
+        color: '#aecdee',
+        defaults: {
+            name : { value: "" },
+            cmdJson: { value: "" },
+            isErrStop: { value:false}
+        },
+        inputs:1,
+        outputs:1,
+        inputLabels: "Motor command input",
+        outputLabels: ["Motor output"],
+        icon: "kmmt.png",
+        paletteLabel:"Sequencer",
+        label: function() {
+            return this.name || this.cmdJson;
+        }
+        ,oneditsave: function() {
+
+        }
+        ,oneditprepare: function() {
+            console.log("oneditprepare");
+            let self=this;
+
+            //info::type parser
+            const ARG_TYPE={
+                bool:{type:"bool"}
+                ,int:{type:"int"}
+                ,unsigInt:{type:"unsigInt"}
+                ,float:{type:"float"}
+                ,unsigFloat:{type:"unsigFloat"}
+                ,colorCode:{type:"colorCode"}
+                ,cmdLed_LED_STATE:{type:"enum",list:{0:"LED_STATE_OFF",1:"LED_STATE_ON_SOLID",2:"LED_STATE_ON_FLASH",3:"LED_STATE_ON_DIM"}}
+                ,cmdCurveType_CURVE_TYPE:{type:"enum",list:{0:"CURVE_TYPE_NONE",1:"CURVE_TYPE_TRAPEZOID"}}
+                ,cmdReadRegister_COMMAND:{type:"enum",list:{
+                        0x02:"maxSpeed",
+                        0x03:"minSpeed",
+                        0x05:"curveType",
+                        0x07:"acc",
+                        0x08:"dec",
+                        0x0E:"maxTorque",
+                        0x18:"qCurrentP",
+                        0x19:"qCurrentI",
+                        0x1A:"qCurrentD",
+                        0x1B:"speedP",
+                        0x1C:"speedI",
+                        0x1D:"speedD",
+                        0x1E:"positionP",
+                        0x1F:"positionI",
+                        0x20:"positionD",
+                        0x21:"posControlThreshold",
+                        0x3A:"ownColor",
+                        0x3C:"iMUMeasurementInterval",
+                        0x2C:"motorMeasurementInterval",
+                        0x46:"deviceName",
+                        0x58:"speed",
+                        0x5B:"positionOffset",
+                        0x66:"moveTo",
+                        0x72:"hold",
+                        0xE0:"led"
+                    }}
+                ,cmdPreparePlaybackMotion_START_POSITION:{type:"enum",list:{0:"START_POSITION_ABS",1:"START_POSITION_CURRENT"}}
+                ,cmdIMUMeasurementInterval_IMU_MEAS_INTERVAL:{type:"enum",list:{0:'5MS',1:'10MS',2:'20MS',3:'50MS',4:'100MS',5:'200MS',6:'500MS',7:'1000MS'}}
+                ,cmdMotorMeasurementInterval_MOTOR_MEAS_INTERVAL:{type:"enum",list:{0:'5MS',1:'10MS',2:'20MS',3:'50MS',4:'100MS',5:'200MS',6:'500MS',7:'1000MS'}}
+            };
+            //todo::i18n 多言語化
+            const CMD_GRUP = {
+                2: "設定", 3: "動作", 4: "情報取得", 5: "通知制御", 6: "ティーチング", 7: "タスクセット" /*,8:"PID設定"*/, 9: "その他"
+            };
+            const CMD_LISTS ={
+                connect:{grup:2,title:"モーターと接続する",desc:"本コマンドを実行しなくても、selectorノードを実行時に、モーターは自動的に接続されます。<br>意図的にモーターを切断した場合に手動接続を行う為に使用します。",args:[]},
+                disConnect:{grup:2,title:"モーターを切断する",desc:"",args:[]},
+                cmdAcc:{grup:2,title:"モーターの加速度を設定する",desc:"accは、モーションコントロールONの場合、加速時に使用されます。（加速時の直線の傾き）",args:[[ARG_TYPE.float,"acc","加速度 0-200 [radian / second^2]（正の値）"]]},
+                cmdCurveType:{grup:2,title:"加減速曲線を指定する（モーションコントロールの設定）",desc:"",args:[[ARG_TYPE.cmdCurveType_CURVE_TYPE,"CurveType","加減速カーブオプション"]]},
+                cmdDec:{grup:2,title:"モーターの減速度を設定する",desc:"decは、モーションコントロールONの場合、減速時に使用されます。（減速時の直線の傾き）",args:[[ARG_TYPE.float,"dec","減速度 0-200 [radian / second^2]（正の値）"]]},
+                cmdLed:{grup:2,title:"LEDの点灯状態をセットする",desc:"",args:[[ARG_TYPE.cmdLed_LED_STATE,"LedState","点灯状態"],[ARG_TYPE.colorCode,"red","0-255"],[ARG_TYPE.colorCode,"green","0-255"],[ARG_TYPE.colorCode,"blue","0-255"]]},
+                cmdMaxSpeed:{grup:2,title:"モーターの最大速さを設定する",desc:"",args:[[ARG_TYPE.unsigFloat,"maxSpeed","最大速さ [radian / second]（正の値）"]]},
+                cmdMaxTorque:{grup:2,title:"モーターの最大トルク（絶対値）を設定する",desc:"maxTorqueを設定することにより、トルクの絶対値がmaxTorqueを超えないように運転します。<br>maxTorque=0.1[Nm]の後にrunForward（正回転）を行った場合、0.1Nmを超えないようにその速度をなるだけ維持する。<br>ただし、トルクの最大値制限により、システムによっては制御性（振動）が悪化する可能性がある。",args:[[ARG_TYPE.unsigFloat,"maxTorque","最大トルク [N*m]（正の値）"]]},
+                cmdOwnColor:{grup:2,title:"モーターの起動時固有LEDカラーを設定する",desc:"ownColorはアイドル時の固有LEDカラー。saveAllSettingsを実行し、再起動後に初めて反映される。<br>この設定値を変更した場合、BLEのDeviceNameの下3桁が変更される。",args:[[ARG_TYPE.colorCode,"red","0-255"],[ARG_TYPE.colorCode,"green","0-255"],[ARG_TYPE.colorCode,"blue","0-255"]]},
+                cmdResetAllRegisters:{grup:2,title:"全てのレジスタをファームウェアの初期値にリセットする",desc:"SaveAllRegistersを実行しない限り、リセット値はモーターに永久的に保存されない(再起動で消える)",args:[]},
+                cmdResetRegister:{grup:2,title:"指定したレジスタをファームウェアの初期値にリセットする",desc:"",args:[[ARG_TYPE.cmdReadRegister_COMMAND,"registers","初期値にリセットするコマンド(レジスタ)値"]]},
+                cmdSaveAllRegisters:{grup:2,title:"全ての設定値をフラッシュメモリに保存する",desc:"本コマンドを実行しない限り、設定値はモーターに永久的に保存されない(再起動で消える)",args:[]},
+                cmdDisable:{grup:3,title:"モーター動作を不許可とする",desc:"安全用：この命令を入れるとモーターは動作しない",args:[]},
+                cmdEnable:{grup:3,title:"モーター動作を許可する",desc:"安全用：この命令を入れるとモーターは動作可能となる<br>モーター起動時はdisable状態のため、本コマンドで動作を許可する必要があり<br>コマンドはタスクセットに記録することは不可",args:[]},
+                cmdSpeed:{grup:3,title:"速度の大きさをセットする（単位系：ラジアン）",desc:"",args:[[ARG_TYPE.unsigFloat,"speed","float 速度の大きさ 単位：角度（ラジアン）/秒 [0-X rps]　(正の数)"]]},
+                cmdSpeed_rpm:{grup:3,title:"速度の大きさをセットする（単位系：RPM）",desc:"",args:[[ARG_TYPE.unsigFloat,"speed_rpm","float [0-X rpm]　(正の数)"]]},
+                cmdFree:{grup:3,title:"モーターの励磁を停止する（感触は残ります）",desc:"完全フリー状態を再現する場合は、cmdFree().cmdDisable()として下さい。",args:[]},
+                cmdMoveByDistance:{grup:3,title:"相対位置に移動する",desc:"speedの指定がnullの場合、直近の速度が引き継がれる。",args:[[ARG_TYPE.float,"distance","角度：radians[左:+radians 右:-radians]"],[ARG_TYPE.unsigFloat,"speed","速度の大きさ 単位：角度（ラジアン）/秒 [0-X rps]　(正の数)"]]},
+                cmdMoveByDistanceSync:{grup:3,title:"相対位置に移動し、移動の成否を通知する",desc:"speedの指定がnullの場合、直近の速度が引き継がれる。<br>このコマンド実行中に別の移動系のコマンドを実行すると'Instructionoverride'としてrejectされる<br>",args:[[ARG_TYPE.float,"distance","角度：radians[左:+radians 右:-radians]"],[ARG_TYPE.unsigFloat,"speed","速度の大きさ 単位：角度（ラジアン）/秒 [0-X rps]　(正の数)"],[ARG_TYPE.unsigInt,"timeout","[0 - x ms] デフォルト 0:タイムアウト無し"]]},
+                cmdMoveToPosition:{grup:3,title:"絶対位置に移動する",desc:"speedの指定がnullの場合、直近の速度が引き継がれる。",args:[[ARG_TYPE.float,"position","角度：radians"],[ARG_TYPE.unsigFloat,"speed","速度の大きさ 単位：角度（ラジアン）/秒 [0-X rps]　(正の数)"]]},
+                cmdMoveToPositionSync:{grup:3,title:"絶対位置に移動し、移動の成否を通知する",desc:"speedの指定がnullの場合、直近の速度が引き継がれる。<br>このコマンド実行中に別の移動系のコマンドを実行すると'Instructionoverride'としてrejectされる<br>",args:[[ARG_TYPE.float,"position","角度：radians"],[ARG_TYPE.unsigFloat,"speed","速度の大きさ 単位：角度（ラジアン）/秒 [0-X rps]　(正の数)"],[ARG_TYPE.unsigInt,"timeout","[0 - x ms] デフォルト 0:タイムアウト無し"]]},
+                cmdPresetPosition:{grup:3,title:"位置のプリセットを行う（原点設定）（単位系：ラジアン）",desc:"",args:[[ARG_TYPE.unsigFloat,"position","float 絶対角度：radians"]]},
+                cmdStop:{grup:3,title:"モーターを速度ゼロまで減速し停止する",desc:"rpm=0となる。",args:[]},
+                cmdRun:{grup:3,title:"モーターを指定速度で回転させる",desc:"cmdSpeedで保存された速度で、正回転",args:[[ARG_TYPE.float,"speed","float 速度の大きさ 単位：角度（ラジアン）/秒 [±X rps]"]]},
+                cmdRun_rpm:{grup:3,title:"モーターを指定速度で回転させる",desc:"cmdSpeedで保存された速度で、逆回転",args:[[ARG_TYPE.float,"speed_rpm","float [±X rpm]"]]},
+                cmdRunForward:{grup:3,title:"正回転する（反時計回り）",desc:"",args:[]},
+                cmdRunReverse:{grup:3,title:"逆回転する（時計回り）",desc:"",args:[]},
+                cmdHoldTorque:{grup:3,title:"トルク制御を行う",desc:"速度や位置を同時に制御する場合は、cmdMaxTorqueとcmdRunForward等を併用して下さい。",args:[[ARG_TYPE.float,"torque","トルク 単位：N・m [-X ~ + X Nm] 推奨値 0.3-0.05"]]},
+                cmdReadAllRegister:{grup:4,title:"",desc:"モーターの全てのレジスタ値の取得(廃止予定1.3.2〜)",args:[]},
+                cmdReadDeviceInfo:{grup:4,title:"デバイス情報の取得",desc:"デバイスインフォメーションを読み取る",args:[]},
+                cmdReadDeviceName:{grup:4,title:"デバイスネームの取得",desc:"デバイスネームを読み取る",args:[]},
+                cmdReadPositionOffset:{grup:4,title:"位置のプリセットに関するOFFSET量",desc:"位置のオフセット量（presetPositionで設定した値に対応）を読み取る",args:[]},
+                cmdReadRegister:{grup:4,title:"指定した設定値を取得",desc:"",args:[[ARG_TYPE.cmdReadRegister_COMMAND,"registers","取得するプロパティのコマンド(レジスタ番号)値"]]},
+                onImuMeasurement:{grup:5,title:"モーターのジャイロ情報を定期的に取得する",desc:"別途cmdEnableIMUMeasurementを実行して通知を開始する必要があります。",args:[]},
+                onMotorLog:{grup:5,title:"モーターのログ情報を定期的に取得する",desc:"ログ情報はoutputからコマンド実行毎に通知されます。",args:[]},
+                onMotorMeasurement:{grup:5,title:"モーターの回転情報を定期的に取得する",desc:"回転情報はoutputから定期的(10ms〜100ms)毎に通知されます。",args:[]},
+                cmdDisableIMUMeasurement:{grup:5,title:"IMU(ジャイロ)の値取得(通知)を停止する",desc:"",args:[]},
+                cmdEnableIMUMeasurement:{grup:5,title:"IMU(ジャイロ)の値取得(通知)を開始する",desc:"本コマンドを実行すると、onImuMeasurementへの通知が開始される",args:[]},
+                cmdIMUMeasurementInterval:{grup:5,title:"IMU(ジャイロ)の測定値の取得間隔",desc:"有線（USB,I2C）のみ有効。BLEでは固定100ms間隔で通知される。",args:[[ARG_TYPE. cmdIMUMeasurementInterval_IMU_MEAS_INTERVAL,"Interval","加速度・ジャイロ測定値の取得間隔オプション"]]},
+                cmdMotorMeasurementInterval:{grup:5,title:"モーター測定値の取得間隔設定",desc:"有線（USB,I2C）のみ有効。BLEでは固定100ms間隔で通知される。",args:[[ARG_TYPE.cmdMotorMeasurementInterval_MOTOR_MEAS_INTERVAL,"Interval","モーター測定値の取得間隔"]]},
+                cmdNotifyPosArrival:{grup:5,title:"位置制御時、目標位置に到達時、判定条件を満たした場合通知を行う。",desc:"判定条件：tolerance内に位置が入っている状態が、settleTime連続で続くと、通知(KM_SUCCESS_ARRIVAL)が一回行われる。<br>tolerance内に位置が入っている状態が、settleTimeの間連続で続くと通知がトリガーされる。<br>toleranceに一瞬でも入ってsettleTime未満で出ると通知トリガーは削除され、通知は行われない。<br>toleranceに一度も入らない場合、通知トリガーは残り続ける。(トリガーの明示的な消去はcmdNotifyPosArrival(0,0,0))<br>再度notifyPosArrivalで設定を行うと、以前の通知トリガーは消える。<br>",args:[[ARG_TYPE.bool,"isEnabled","0:無効, 1:有効"],[ARG_TYPE.unsigFloat,"tolerance","[0.0 - n] 許容誤差 radian (0.00174533 ≒ 0.1deg)"],[ARG_TYPE.unsigInt,"settleTime","[0 - n] 判定時間 ミリ秒 (デフォルト 200ms)"]]},
+                cmdResponse:{grup:5,title:"コマンドを受信したときに成功通知（errorCode = 0）をするかどうか",desc:"",args:[[ARG_TYPE.bool,"isEnabled","0:無効, 1:有効"]]},
+                cmdEraseAllMotion:{grup:6,title:"ティーチングで覚えた全動作を削除する",desc:"",args:[]},
+                cmdEraseMotion:{grup:6,title:"ティーチングで覚えた動作を削除する",desc:"KM-1の場合、インデックスの値は0～19（計20個記録）となる",args:[[ARG_TYPE.int,"index","消去するインデックス"]]},
+                cmdStartPlaybackMotion:{grup:6,title:"ティーチングで覚えた動作を再生",desc:"直前の preparePlaybackMotion の条件でモーションの再生を開始する",args:[[ARG_TYPE.unsigInt,"index","int モーション番号（0～65535）"],[ARG_TYPE.unsigInt,"repeating","int 繰り返し回数 0は無制限"],[ARG_TYPE.cmdPreparePlaybackMotion_START_POSITION,"start_position","int スタート位置の設定"]]},
+                cmdStartTeachingMotion:{grup:6,title:"ティーチング記録を開始する",desc:"KM-1の場合、インデックスの値は0～19（計20個記録）となる。記録時間は65408[msec]を超えることはできない<br>記憶するインデックスのメモリはbleEraseMotionにより予め消去されている必要がある",args:[[ARG_TYPE.unsigInt,"index","int インデックス [0-19]"],[ARG_TYPE.unsigInt,"time","int 記録時間 [msec 0-65408]"]]},
+                cmdStopTeachingMotion:{grup:6,title:"ティーチング記録を停止する",desc:"",args:[]},
+                cmdEraseAllTaskset:{grup:7,title:"タスクセットを全削除する",desc:"",args:[]},
+                cmdEraseTaskset:{grup:7,title:"指定のタスクセットを削除する",desc:"",args:[[ARG_TYPE.int,"index","消去するインデックス"]]},
+                cmdStartDoingTaskset:{grup:7,title:"記憶したタスクを実行する",desc:"KM-1はindex:0~49まで。（50個のメモリバンク各8128Byteまで制限あり）<br>タスクセットの記録は、コマンド（タスクセット）を参照下さい。https://document.keigan-motor.com/motor-control-command/taskset.html",args:[[ARG_TYPE.unsigInt,"index","int タスクセット番号（0～65535）"],[ARG_TYPE.unsigInt,"repeating","int 繰り返し回数 0は無制限"]]},
+                cmdStartRecordingTaskSet:{grup:7,title:"タスクセットの記録を開始する",desc:"記憶するインデックスのメモリはコマンド：eraseTasksetにより予め消去されている必要があり",args:[[ARG_TYPE.unsigInt,"index","int インデックス KM-1 の場合、インデックスの値は 0～49 （計50個記録）"]]},
+                cmdStopDoingTaskset:{grup:7,title:"タスクセットを停止",desc:"タスクセットの再生を停止する",args:[]},
+                cmdStopRecordingTaskset:{grup:7,title:"タスクセットの記録を停止する",desc:"",args:[]},
+                cmdPauseQueue:{grup:7,title:"キューを一時停止する",desc:"resume コマンドを実行するまで、KeiganMotorのタスク実行を停止します",args:[]},
+                cmdResetQueue:{grup:7,title:"キューをリセットする",desc:"キューに貯まったタスクを全て消去します。<br>pause（キュー停止）または wait（キュー待機）状態に限り有効です。",args:[]},
+                cmdResumeQueue:{grup:7,title:"キューを再開する（蓄積されたタスクを再開）",desc:"",args:[]},
+                cmdWaitQueue:{grup:7,title:"キューを指定時間停止し再開する",desc:"cmdPause（キュー停止）を実行し、指定時間（ミリ秒）経過後、自動的にcmdResume（キュー再開）を行います。",args:[[ARG_TYPE.int,"time","int 停止時間[msec]"]]},
+                msgPayload:{grup:9,title:"コマンド外部入力",desc:"JSON形式の外部コマンド入力( msg.payload.{\"cmd\":\"cmdLed\",\"arg\",[1,2..]} )を受付ける",args:[]},
+                cmdReboot:{grup:9,title:"モーターを再起動する",desc:"再起動した場合、モーターの接続は切断されます",args:[]},
+                cmdPosControlThreshold:{grup:9,title:"モーターの位置制御時、ID制御を有効にする偏差の絶対値を指定する",desc:"",args:[[ARG_TYPE.unsigFloat,"threshold","float [0.0 - n]（デフォルト 0.0139626f // 0.8deg）"]]},
+                cmdPositionD:{grup:9,title:"モーターの位置制御Dパラメタをセット",desc:"",args:[[ARG_TYPE.unsigFloat,"positionD","float [0.0001 - 0.2]（デフォルト 0.01）"]]},
+                cmdPositionI:{grup:9,title:"モーターの位置制御Iパラメタをセット",desc:"",args:[[ARG_TYPE.unsigFloat,"positionI","float [1.0000 - 100.0000]（デフォルト 10.0）"]]},
+                cmdPositionP:{grup:9,title:"モーターの位置制御Pパラメタをセット",desc:"",args:[[ARG_TYPE.unsigFloat,"positionP","float [1.0000 - 20.0000]（デフォルト 5.0）"]]},
+                cmdQCurrentD:{grup:9,title:"モーターのq軸電流PIDコントローラのD（微分）ゲインを設定する",desc:"",args:[[ARG_TYPE.unsigFloat,"qCurrentD","float q電流Dゲイン（正の値）"]]},
+                cmdQCurrentI:{grup:9,title:"モーターのq軸電流PIDコントローラのI（比例）ゲインを設定する",desc:"",args:[[ARG_TYPE.unsigFloat,"qCurrentI","float q電流Iゲイン（正の値）"]]},
+                cmdQCurrentP:{grup:9,title:"モーターのq軸電流PIDコントローラのP（比例）ゲインを設定する",desc:"",args:[[ARG_TYPE.unsigFloat,"qCurrentP","float q電流Pゲイン（正の値）"]]},
+                cmdResetPID:{grup:9,title:"全てのPIDパラメータをリセットしてファームウェアの初期設定に戻す",desc:"qCurrentP,qCurrentI,qCurrentD,speedP,speedI,speedD,positionPをリセットします",args:[]},
+                cmdSpeedD:{grup:9,title:"モーターの速度PIDコントローラのD（微分）ゲインを設定する",desc:"",args:[[ARG_TYPE.unsigFloat,"speedD","float 速度Dゲイン（正の値）"]]},
+                cmdSpeedI:{grup:9,title:"モーターの速度PIDコントローラのI（積分）ゲインを設定する",desc:"",args:[[ARG_TYPE.unsigFloat,"speedI","float 速度Iゲイン（正の値）"]]},
+                cmdSpeedP:{grup:9,title:"モーターのq軸電流PIDコントローラのD（微分）ゲインを設定する",desc:"",args:[[ARG_TYPE.unsigFloat,"speedP","float 速度Pゲイン（正の値）"]]}
+            };
+
+            function _selectGrupTab(num){
+                let nm=parseInt(num);
+                $("#km-motor-sequencer-comListTable .comListGrupTap > li").each(function(idx,elem){
+                    $(elem).toggleClass("select",parseInt($(elem).attr("grup"))===nm);
+                });
+                $("#km-motor-sequencer-comListTable .comListTable > .comListClm").each(function(idx,elem){
+                    $(elem).toggle(parseInt($(elem).attr("grup"))===nm);
+                });
+                //選択したコマンドを最上位に
+                if($('#km-motor-sequencer-comListTable .comListTable > .comListClm.select').length){
+                    let $table=$("#km-motor-sequencer-comListTable .comListTable");
+                    $table.scrollTop($('> .comListClm.select',$table).position().top-$table.position().top-20);
+                }
+            }
+            function _createInput(aType,idx){
+                let $input=null;
+                if(aType===ARG_TYPE.bool){
+                    $input=$('<select >',{name:"arg-"+idx}).append($('<option value="">--</option><option value="1">True</option><option value="0">False</option>'));
+                }else if(aType.type==="enum"){
+                    $input=$('<select >',{name:"arg-"+idx}).append($('<option value="">--</option>'));
+                    Object.keys(aType.list).forEach((key)=>{
+                        $input.append($('<option value="'+key+'">'+aType.list[key]+'</option>'));
+                    });
+                }else{
+                    $input=$('<input type="text" >',{name:"arg-"+idx});
+                }
+                return $input;
+            }
+
+            function _createCmdJson(cmdName,args){
+                let cmd={cmd:cmdName};
+                if(args.length){
+                    cmd["arg"]=args;
+                }
+                return JSON.stringify(cmd);
+            }
+            function _redrawSelecttedCss(){
+                $('#km-motor-sequencer-comListTable .comListTable .comListClm').toggleClass('select',false);
+                $('#km-motor-sequencer-comListTable .comListTable input[name="selectcmd"]:checked').parent().parent().parent().toggleClass('select',true);
+            }
+            function _changeCmdJson(json){
+                $('#node-input-cmdJson').val(json);
+            }
+
+            function parameterPanel($targetDom,cmdlist,changeInputsCB=()=>{}){
+                let me=this;
+                me.$inputs=[];
+                me.$targetDom=$targetDom;
+                me.inputArgs=[];
+                me.inputArgTypes=[];
+                let $elem=$('<ul class="args"/>');
+                me.$targetDom.empty();
+                me.$targetDom.append($('<div class="desc"/>').append(cmdlist.desc)).append($elem);
+
+                cmdlist.args.forEach((arg,idx)=>{
+                    me.inputArgs[idx]={type:arg[0],name:arg[1],desc:arg[2],val:null,$elem:_createInput(arg[0],idx)};
+                    let inputArg=me.inputArgs[idx];
+
+                    let $selem=$('<li/>');
+                    $selem.append($('<span/>',{class:"argName"}).append(inputArg.name));
+                    $selem.append($('<span/>',{class:"argInput argType-"+inputArg.type.type,idx:idx}).append(inputArg.$elem));
+                    $selem.append($('<span/>',{class:"argDesc"}).append(inputArg.desc));
+                    $elem.append($selem);
+                    inputArg.$elem.on('change', function() {
+                        //値の型変換
+                        let val=$(this).val();
+                        if(val===""){
+                            val=null;
+                        }else{
+                            //info::type parser
+                            switch (inputArg.type){
+                                case ARG_TYPE.bool:
+                                    val=Boolean(parseInt(val));
+                                    break;
+                                case ARG_TYPE.int:
+                                case ARG_TYPE.cmdLed_LED_STATE:
+                                    val=parseInt(val)||0;
+                                    break;
+                                case ARG_TYPE.unsigInt:
+                                    val=Math.abs(parseInt(val))||0;
+                                    break;
+                                case ARG_TYPE.float:
+                                    val=parseFloat(val)||0;
+                                    break;
+                                case ARG_TYPE.unsigFloat:
+                                    val=Math.abs(parseFloat(val))||0;
+                                    break;
+                                case ARG_TYPE.colorCode:
+                                    val=Math.min(Math.abs(parseInt(val)),255)||0;
+                                    break;
+                                default:
+                                    //enum
+                                    if(inputArg.type.type==="enum"){
+                                        val=parseInt(val);
+                                    }
+                            }
+                        }
+                        inputArg.val=val;
+                        changeInputsCB($(this),idx);
+                    });
+                });
+
+                if(cmdlist.args.length){
+                    //引数入力オプション "msg.payload"からの入力
+                    me.$inputPayload=$('<input type="checkbox" >',{name:"inputPayload"}).on('change', function() {
+                        let val=$(this).prop('checked');
+                        $elem.toggleClass("disable",val);
+                        changeInputsCB($(this),val);
+                    });
+                    me.$targetDom.append($('<div/>',{class:"inputPayload"}).append($('<label/>').append(me.$inputPayload).append("引数を msg.payload からの入力に置き換える")));
+                }
+
+                me.setInputArgs=(args)=>{
+                    if(!args){return;}
+                    if(args instanceof Array){
+                        me.inputArgs.forEach((inputArg,idx)=>{
+                            if(args[idx]!==undefined){
+                                //値の型変換
+                                switch (inputArg.type){
+                                    case ARG_TYPE.bool:
+                                        inputArg.val= args[idx]===null?null:(args[idx]?1:0);
+                                        break;
+                                    default:
+                                        inputArg.val=args[idx];
+                                        break;
+                                }
+                            }else{
+                                inputArg.val=null;
+                            }
+                            inputArg.$elem.val(inputArg.val);
+                        });
+                    }else if(me.$inputPayload&&args==="msg.payload"){
+                        me.$inputPayload.prop('checked',true);
+                        $elem.toggleClass("disable",true);
+                    }
+                };
+
+                me.getInputArgs=()=>{
+                    return (me.$inputPayload&&me.$inputPayload.prop('checked'))?"msg.payload":me.inputArgs.map((t)=>{return t.val;});
+                }
+            }
+
+            function commandListSetup(defaultCmdJson){
+                let $grupTab=$('<ul class="comListGrupTap"/>');
+                Object.keys(CMD_GRUP).forEach((key)=>{
+                    let $tab=$('<li grup="'+key+'">'+CMD_GRUP[key]+'</li>').on('click',function(){
+                        _selectGrupTab($(this).attr("grup"));
+                    });
+
+                    $grupTab.append($tab);
+                });
+
+                let $tableData=$('<ul class="comListTable"/>');
+                let $parameterPanel=$('<div id="parameterPanel"/>');
+                Object.keys(CMD_LISTS).forEach((cmdName)=>{
+                    let $clm= $('<li/>',{id:"comList-"+cmdName,class:"comListClm",grup:CMD_LISTS[cmdName].grup});
+                    let $cmdCell=$('<div/>',{id:"desc-"+cmdName,class:"descPanel-wrap"}).append($('<label><input type="radio" name="selectcmd" value="'+cmdName+'" autocomplete="disable"><span class="cmdName">'+cmdName+'</span><span class="title">'+CMD_LISTS[cmdName].title+'</span></label></div>'));
+                    $clm.append($cmdCell);
+                    $clm.append($('<div/>',{id:"pPanel-"+cmdName,class:"parameterPanel-wrap"}));
+                    $tableData.append($clm);
+                });
+
+                $("#km-motor-sequencer-comListTable").empty().append($grupTab).append($tableData);
+                $('#km-motor-sequencer-comListTable .comListClm input[type="radio"][name="selectcmd"]').on('change', function() {
+                    let cmdName=$(this).val();
+                    $parameterPanel.appendTo($('#pPanel-'+cmdName));
+                    let panel=new parameterPanel($parameterPanel,CMD_LISTS[cmdName],()=>{
+                        _changeCmdJson(cmdName==="msgPayload"?"msg.payload":_createCmdJson(cmdName,panel.getInputArgs()));
+                    });
+
+                    _changeCmdJson(cmdName==="msgPayload"?"msg.payload":_createCmdJson(cmdName,panel.getInputArgs()));
+                    _redrawSelecttedCss();
+                });
+
+                //defaultCmdJsonから選択を復元する
+                let defaultCmd={};
+                if(defaultCmdJson==="msg.payload"){
+                    defaultCmd={cmd:"msgPayload"};
+                }else {
+                    try{
+                        defaultCmd=JSON.parse(defaultCmdJson);
+                    }catch (e){}
+                }
+
+                if(defaultCmd&&defaultCmd.cmd&&CMD_LISTS[defaultCmd.cmd]){
+                    let cmdName=defaultCmd.cmd;
+                    $('#km-motor-sequencer-comListTable .comListTable input[name="selectcmd"]').val([cmdName]);
+                    $parameterPanel.appendTo($('#pPanel-'+cmdName));
+                    let panel=new parameterPanel($parameterPanel,CMD_LISTS[cmdName],()=>{
+                        _changeCmdJson(_createCmdJson(cmdName,panel.getInputArgs()));
+                    });
+                    if(CMD_LISTS[defaultCmd.cmd].args.length){
+                        panel.setInputArgs(defaultCmd.arg);
+                    }
+
+                    _redrawSelecttedCss();
+                    _selectGrupTab(CMD_LISTS[cmdName].grup);
+
+                }else {
+                    _selectGrupTab(Object.keys(CMD_GRUP)[0]);
+                }
+            }
+            commandListSetup(this.cmdJson);
+        }
+    });
+</script>
+<style>
+    #km-motor-sequencer-comListTable{
+        width: calc(100% - 16px);
+        display: block;
+        font-size: 13px;
+        margin: 16px 0;
+        background: #fff;
+        padding: 0;
+        border-radius: 2px;
+        border: 1px solid #ddd;
+    }
+
+    #km-motor-sequencer-comListTable .comListGrupTap{
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        margin-left: auto;
+        margin-right: auto;
+        border: 1px solid #999999;
+    }
+    #km-motor-sequencer-comListTable .comListGrupTap li{
+        display: inline-block;
+        border: 1px solid #999999;
+        border-radius: 4px 4px 0 0;
+        margin-right: 2px;
+        padding: 4px;
+        border-bottom: none;
+        min-width: 40px;
+        text-align: center;
+        user-select: none;
+    }
+    #km-motor-sequencer-comListTable .comListGrupTap li.select{
+        background-color: #d3f1ff;
+    }
+
+    #km-motor-sequencer-comListTable .comListTable{
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        margin-left: auto;
+        margin-right: auto;
+        border: 1px solid #bdbdbd;
+        overflow-y: scroll;
+        max-height: 360px;
+    }
+    #km-motor-sequencer-comListTable .comListClm{
+        border-bottom: 1px solid #999999;
+        user-select: none;
+    }
+    #km-motor-sequencer-comListTable .comListClm.select .descPanel-wrap{
+        background-color: #d3f1ff;
+    }
+
+    #km-motor-sequencer-comListTable label{
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        display: block;
+    }
+
+    #km-motor-sequencer-comListTable input[type="radio"] {
+        width: auto;
+        margin: 3px 2px;
+        vertical-align: top;
+        margin-right: 4px;
+    }
+    #km-motor-sequencer-comListTable .descPanel-wrap {
+        padding: 8px;
+
+        background-color: #f1f1f1;
+    }
+    #km-motor-sequencer-comListTable .parameterPanel-wrap{
+        background-color: #f0f7ff;
+    }
+    #km-motor-sequencer-comListTable #parameterPanel{
+        padding: 8px;
+        background-color: #ffffff;
+    }
+    #km-motor-sequencer-comListTable #parameterPanel .args{
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    #km-motor-sequencer-comListTable #parameterPanel .args.disable{
+        pointer-events: none;
+        opacity: 0.4;
+    }
+    #km-motor-sequencer-comListTable #parameterPanel .inputPayload{
+        padding: 4px 8px;
+    }
+    #km-motor-sequencer-comListTable #parameterPanel .inputPayload input{
+        width: auto;
+        vertical-align: baseline;
+        margin-right: 7px;
+    }
+
+    #km-motor-sequencer-comListTable #parameterPanel li{
+        margin: 16px;
+    }
+    #km-motor-sequencer-comListTable #parameterPanel .argName{
+        width: 120px;
+        display: inline-block;
+        background-color: #f1f1f1;
+        height: 34px;
+        vertical-align: middle;
+        text-align: center;
+        line-height: 34px;
+        font-weight: bold;
+        font-size: 14px;
+    }
+    #km-motor-sequencer-comListTable #parameterPanel .argInput{
+        display: inline-block;
+        width: 160px;
+    }
+
+    #km-motor-sequencer-comListTable #parameterPanel .argInput input{
+        width: 100%;/***override input***/
+    }
+    #km-motor-sequencer-comListTable #parameterPanel .argInput select{
+        width: 100%;/***override input***/
+    }
+    #km-motor-sequencer-comListTable #parameterPanel .argDesc{
+        display: inline-block;
+        margin-left: 12px;
+    }
+
+    #km-motor-sequencer-comListTable #parameterPanel .inputPayload{
+        display: inline-block;
+        margin-left: 12px;
+    }
+
+    #km-motor-sequencer-comListTable .cmdName{
+
+    }
+    #km-motor-sequencer-comListTable .title{
+        display: block;
+        margin-left: 20px;
+    }
+
+    #km-motor-sequencer-comListTable .argCell {
+        width: 170px;
+        height: 22px;
+        display: table-cell;
+        text-align: left;
+        padding-left: 4px;
+        vertical-align: middle;
+        border: 1px solid #000;
+    }
+    #km-motor-sequencer-comListTable .argCell label {
+        width: 170px;
+    }
+</style>
+<script type="text/x-red" data-template-name="km-motor-sequencer">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> <span data-i18n="node-red:common.label.name"></span></label>
+        <input type="text" id="node-input-name" data-i18n="[placeholder]node-red:common.label.name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-cmdJson"><span data-i18n="km-motor-sequencer.label.cmdJson"></span></label>
+        <input type="text" id="node-input-cmdJson" data-i18n="[placeholder]km-motor-sequencer.placeholder.cmdJson">
+        <div id="km-motor-sequencer-comListTable"></div>
+    </div>
+    <div class="form-row">
+        <label for="node-input-isErrStop">&nbsp;</label>
+        <input type="checkbox" id="node-input-isErrStop" style="display:inline-block; width:15px; vertical-align:baseline;"><span data-i18n="km-motor-sequencer.label.isErrStop"></span>
+    </div>
+</script>

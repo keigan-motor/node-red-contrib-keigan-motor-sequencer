@@ -1,0 +1,61 @@
+<script type="text/x-red" data-help-name="km-motor-usb-selector">
+    <h3>KeiganMotorセレクター(USB)</h3>
+    <p>USBポートに接続されているKeiganMotorを検出し、接続するノードです。<br>接続したモーターをmsg.motorに出力します。<br>
+    出力されたモーターはSequencerノードの入力に使用します。</p>
+    <h3>入力</h3>
+    <dl class="message-properties">
+        <dt>payload:Boolean<span class="property-type">Boolean</span></dt>
+        <dd>
+            <dl>
+                <dt>true</dt>
+                <dd>ノードに設定されたモーターに接続します。</dd>
+                 <dd>注意 検出されていないモーターはに接続できません。</dd>
+            </dl>
+        </dd>
+        <dt>payload:String<span class="property-type">String</span></dt>
+        <dd>
+            <dl>
+                <dt>scan</dt>
+                <dd>モーターを検出し、ノードに設定されたモーターに接続します。</dd>
+                <dd>"scan"コマンドは、起動時・デプロイ時に自動で実行される為、実行後にモーターを接続した場合に使用します。<br>
+            一度検出したモーターは取り外しても認識され続けます。<br>
+            現在接続されているモーターのみを認識する場合は、"スキャン時に全てのモーターを切断して再取得する"にチェックを入れて下さい。</dd>
+            </dl>
+
+            <dl>
+                <dt>ex)</dt>
+                <dd>payload="scan"</dd>
+            </dl>
+        </dd>
+        <dt>payload:JSON<span class="property-type">Json</span></dt>
+        <dd>
+        指定のモーターを検出し接続する外部コマンド。<br>ノードの設定を無視して選択、接続を指定できます。動的な処理が必要な場合に使用します。<br>
+                    "selectMotorName":接続するモーター名。自動選択する場合は{"selectMotorName":"^"}として下さい。<br>
+                    "scan":＜true:全てのモーターを切断して再取得する false:新たに追加されたモーターを追加検出＞<br>
+                    <dl>
+                        <dt>selectMotorName</dt>
+                        <dd>接続するモーター名。自動選択する場合は{"selectMotorName":"^"}として下さい。</dd>
+                        <dt>scan</dt>
+                        <dd>true:全てのモーターを切断して再取得する false:新たに追加されたモーターを追加検出</dd>
+                        <dd>注意 一度検出したモーターは取り外しても認識され続けます。現在接続されているモーターのみを再検出する場合は{"scan":true}として下さい。</dd>
+                    </dl>
+            <dl>
+                <dt>ex)</dt>
+                <dd>payload={"selectMotorName":"KM1-S ABCD"}</dd>
+                <dd>payload={"selectMotorName":"^"}//モーター自動選択</dd>
+                <dd>payload={"scan":true,"selectMotorName":"KM-1U KCBF"}//接続を初期化</dd>
+            </dl>
+        </dd>
+    </dl>
+     <h3>出力</h3>
+        <dl class="message-properties">
+            <dt>motor<span class="property-type">Object</span></dt>
+            <dd>選択したモーター</dd>
+            <dd>この出力をSequencerノードに入力します</dd>
+        </dl>
+    <h3>詳細</h3>
+    <ul>
+        <li>検出されていないモーターはに接続できません。</li>
+        <li>"scan"コマンドは、起動時・デプロイ時に自動で実行される為、実行後にモーターを接続した場合に使用します。</li>
+    </ul>
+</script>

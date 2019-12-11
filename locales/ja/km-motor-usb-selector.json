@@ -1,0 +1,15 @@
+{
+    "km-motor-usb-selector":{
+        "node-name": "USB Selector",
+        "label":{
+            "selectMotorName":"モーター名",
+            "isInitializScan":"スキャン時に全てのモーターを切断して再取得する",
+            "selectMotorNameself":"モーター名を手入力で指定",
+            "isMotorKeepalive":"モーターの自動再接続",
+            "btn_scanMotorName":"再スキャン"
+        },
+        "placeholder":{
+        }
+        ,"tips":"モーター名をAutoSelectにすると、検出した最初のモータを自動選択します。"
+    }
+}

@@ -1,0 +1,35 @@
+<script type="text/x-red" data-help-name="km-motor-sequencer">
+ <h3>KeiganMotor Sequencer</h3>
+    <p>KeiganMotorを操作するノードです。<br>入力にKeiganMotorセレクターの出力を接続して使用します。</p>
+ <h3>入力</h3>
+    <dl class="message-properties">
+            <dt>motor<span class="property-type">Object</span></dt>
+            <dd>KeiganMotorセレクターで選択されたモーター</dd>
+    </dl>
+    <dl class="message-properties">
+        <dt>payload:Boolean<span class="property-type">Boolean</span></dt>
+        <dd>
+            <dl>
+                <dt>true</dt>
+                <dd>モーターコマンドに記載のコマンドを実行します</dd>
+            </dl>
+        </dd>
+
+        <dt>payload:JSON<span class="property-type">Json</span></dt>
+        <dd>ノードに設定されたモーターコマンドが"msg.payload"（コマンド外部入力）の場合、外部からコマンドを受けつけます。
+               <dl>
+                <dt>モーターコマンドが"msg.payload"の場合、msg.payloadに以下のようなJSONデータを入力する事でモーターを制御できます。</dt>
+                <dd>payload={"cmd":"cmdLed","arg":[2,0,0,200]}</dd>
+                <dd>payload={"cmd":"cmdEnable"}</dd>
+            </dl>
+        </dd>
+        <dt>payload:String<span class="property-type">String</span></dt>
+        <dd>ノードに設定されたモーターコマンドの引数が"msg.payload"の場合、コマンドの引数を置換します。
+               <dl>
+                <dt>モーターコマンドが {"cmd":"cmdLed","arg":"msg.payload"} の場合、msg.payloadに以下のようなString又はJSONデータを入力すると、モーターコマンドの引数として実行します。</dt>
+                <dd>payload="1,200,200,0" //複数の値はカンマ区切りで指定</dd>
+                <dd>payload=[1,200,200,0] //JSON形式の配列も可能</dd>
+            </dl>
+        </dd>
+    </dl>
+</script>

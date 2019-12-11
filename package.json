@@ -1,0 +1,45 @@
+{
+  "name": "node-red-contrib-keigan-motor-sequencer",
+  "version": "0.1.2",
+  "description": "Keigan Motor node-red motor sequencer node.",
+  "main": "none",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/keigan-motor/node-red-contrib-keigan-motor-sequencer.git"
+  },
+  "scripts": {
+    "postinstall": "node setcap.js",
+    "test": "grunt"
+  },
+  "dependencies": {
+    "kmconnector": ">=0.3.3"
+  },
+
+  "devDependencies": {
+    "grunt": "^1.0.4",
+    "grunt-contrib-jshint": "^2.1.0",
+    "grunt-jsonlint": "^2.0.0",
+    "grunt-lint-inline": "^1.0.0",
+    "grunt-mocha-istanbul": "^5.0.2",
+    "grunt-simple-mocha": "^0.4.1",
+    "istanbul": "^1.1.0-alpha.1",
+    "mocha": "^6.1.4",
+    "node-red": "^0.20.7",
+    "node-red-node-test-helper": "^0.2.3",
+    "should": "^13.2.3"
+  },
+  "keywords": [
+    "node-red",
+    "motor",
+    "keigan"
+  ],
+  "node-red": {
+    "version": ">=1.0.0",
+    "nodes": {
+      "km-motor-usb-selector":"km-motor-usb-selector.js"    ,"km-motor-sequencer":"km-motor-sequencer.js"
+
+    }
+  },
+  "author": "Keigan Inc.",
+  "license": "MIT"
+}

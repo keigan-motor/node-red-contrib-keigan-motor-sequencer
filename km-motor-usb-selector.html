@@ -1,0 +1,108 @@
+<script type="text/javascript">
+    RED.nodes.registerType('km-motor-usb-selector',{
+        category: 'Keigan Motor',
+        color: '#66bef7',
+        defaults: {
+            name: {value:""},
+            selectMotorName: { value: "" },
+            selectMotorNameself: { value:false },
+            isInitializScan: { value:true},
+            isMotorKeepalive: { value:true}
+        },
+        inputs:1,
+        outputs:1,
+        inputLabels: "Select MotorName input",
+        outputLabels: ["Motor output"],
+        icon: "bridge.png",
+        paletteLabel:"USB Selector",
+        label: function() {
+            return this.name || this._("km-motor-usb-selector.node-name") + " /"+(this.selectMotorName||"^");
+        }
+        ,oneditsave: function() {
+
+        }
+        ,oneditprepare: function() {
+            let self = this;
+            function getUsbList(node,is_initializ){
+                $.ajax({
+                    cache: false,
+                    url: '__km-motor-usb-list/' +node.id+'/'+ is_initializ,
+                    dataType: 'json',
+                    success: function(names) {
+                        $("#selectMotorName-pulldown").empty();
+                        if(names instanceof Array){
+                            $("#selectMotorName-pulldown").append('<option value="">AutoSelect</option>');
+                            names.forEach((name)=>{
+                                $("#selectMotorName-pulldown").append('<option value="'+name+'">'+name+'</option>');
+                            });
+
+                            $("#selectMotorName-pulldown").val($("#node-input-selectMotorName").val());
+                        }
+                    },
+                    error: function(jqXHR,textStatus,errorThrown) {
+                        if (jqXHR.status == 404) {
+                            RED.notify(node._("common.notification.error",{message:node._("common.notification.errors.not-deployed")}),"error");
+                        } else if (jqXHR.status == 500) {
+                            RED.notify(node._("common.notification.error",{message:node._("inject.errors.failed")}),"error");
+                        } else if (jqXHR.status == 0) {
+                            RED.notify(node._("common.notification.error",{message:node._("common.notification.errors.no-response")}),"error");
+                        } else {
+                            RED.notify(node._("common.notification.error",{message:node._("common.notification.errors.unexpected",{status:jqXHR.status,message:textStatus})}),"error");
+                        }
+                    }
+                });
+            }
+
+            $("#selectMotorName-pulldown").on('change',(event)=>{
+                let val =  $(event.currentTarget).val();
+                $("#node-input-selectMotorName").val(val);
+            });
+            $("#btn-scanMotorName").on('click',(event)=>{
+                getUsbList(this,true);
+            });
+            $("#node-input-selectMotorNameself").on('change',(event)=>{
+                let val =  $(event.currentTarget).prop("checked");
+                $("#selectMotorName-pulldown-clm").toggle(!val);
+                $("#node-input-selectMotorName").toggle(val);
+            });
+            $("#selectMotorName-pulldown-clm").toggle(!this.selectMotorNameself);
+            $("#node-input-selectMotorName").toggle(this.selectMotorNameself);
+
+            getUsbList(this,false);
+        }
+    });
+
+</script>
+
+<script type="text/x-red" data-template-name="km-motor-usb-selector">
+     <div class="form-row">
+        <label for="node-input-selectMotorName"><i class="fa fa-tag"></i> <span data-i18n="km-motor-usb-selector.label.selectMotorName"></span></label>
+        <div id="selectMotorName-pulldown-clm" style="display: inline-block;">
+         <select id="selectMotorName-pulldown"></select>
+         <a id="btn-scanMotorName" class="red-ui-button" style=""><i class="fa fa-pencil"></i><span data-i18n="km-motor-usb-selector.label.btn_scanMotorName"></span></a>
+        </div>
+
+        <input type="text" id="node-input-selectMotorName" data-i18n="[placeholder]km-motor-usb-selector.placeholder.selectMotorName">
+        <div id="selectMotorNameself-clm" style="text-align: center;">
+        <input type="checkbox" id="node-input-selectMotorNameself" style="display:inline-block; width:15px; vertical-align:baseline;"><span data-i18n="km-motor-usb-selector.label.selectMotorNameself"></span>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> <span data-i18n="node-red:common.label.name"></span></label>
+        <input type="text" id="node-input-name" data-i18n="[placeholder]node-red:common.label.name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-isInitializScan">&nbsp;</label>
+        <input type="checkbox" id="node-input-isInitializScan" style="display:inline-block; width:15px; vertical-align:baseline;"><span data-i18n="km-motor-usb-selector.label.isInitializScan"></span>
+    </div>
+    <div class="form-row">
+        <label for="node-input-isMotorKeepalive">&nbsp;</label>
+        <input type="checkbox" id="node-input-isMotorKeepalive" style="display:inline-block; width:15px; vertical-align:baseline;"><span data-i18n="km-motor-usb-selector.label.isMotorKeepalive"></span>
+    </div>
+
+
+    <div class="form-tips">
+        <span data-i18n="km-motor-usb-selector.tips"></span>
+    </div>
+</script>

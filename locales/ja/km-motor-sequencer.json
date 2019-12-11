@@ -1,0 +1,12 @@
+{
+    "km-motor-sequencer":{
+        "node-name": "USB Sequencer",
+        "label":{
+            "cmdJson": "モーターコマンド",
+            "isErrStop":"エラー時にメッセージの伝播を停止する"
+        },
+        "placeholder":{
+            "cmdJson": "{\"cmd\":\"コマンド名\",\"arg\":引数[]}"
+        }
+    }
+}
