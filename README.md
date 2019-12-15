@@ -4,6 +4,8 @@ RaspberryPiにUSB接続したKeiganMotorをNode-REDから操作するノード�
 
 ![sc_1](/sc_1.png)
 
+![sc_2](/sc_2.png)
+
 ## 前提条件
 raspberry pi3 又はraspberry pi4
 node-red v1.0以上

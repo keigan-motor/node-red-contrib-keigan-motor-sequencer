@@ -192,7 +192,7 @@ module.exports = function(RED) {
             }
         };
         node._err = function (msgType = {}, cmdObj = {}, info = "") {
-            node.msg.payload = false;
+           // node.msg.payload = false;
             node.msg.execmd = Object.assign({}, cmdObj);
             node.msg.err = Object.assign({info: info}, msgType);
 
@@ -207,7 +207,7 @@ module.exports = function(RED) {
             }
         };
         node._comp = function (cmdObj = {}, info = "") {
-            node.msg.payload = true;
+            //node.msg.payload = true;
             node.msg.execmd = Object.assign({}, cmdObj);
             node.msg.comp = Object.assign({info: info}, MSG_TYPE.EXE_SUCCESS);
 
@@ -302,9 +302,6 @@ module.exports = function(RED) {
          */
         this.on('input', function (msg) {
             node.msg = msg;
-            if (!node.msg.payload) {
-                return;
-            }
             try {
                 if (node.msg.payload === "scan") {
                     scan(node.isInitializScan).then(() => {
@@ -320,6 +317,8 @@ module.exports = function(RED) {
             } catch (err) {
                 node._err(MSG_TYPE.UNEXPECTED_ERR, {payload: node.msg.payload}, err.message);
             }
+
+
         });
 
         this.on('close', function () {

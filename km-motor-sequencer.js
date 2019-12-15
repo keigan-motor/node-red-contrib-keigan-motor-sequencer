@@ -199,6 +199,8 @@ module.exports = function(RED) {
                             node.targetMotor.on(node.targetMotor.EVENT_TYPE.motorLog, node._motorLogLis);
                             break;
                     }
+                    node.status({fill: "green", shape: "dot", text: cmdObj.cmd});
+
                 }else {
                     //その他コマンド処理
                     if (!node.targetMotor.deviceInfo.isConnect) {
