@@ -126,6 +126,7 @@
                 cmdResetQueue:{grup:7,title:"キューをリセットする",desc:"キューに貯まったタスクを全て消去する。<br>pause（キュー停止）または wait（キュー待機）状態に限り有効。",args:[]},
                 cmdResumeQueue:{grup:7,title:"キューを再開する（蓄積されたタスクを再開）",desc:"",args:[]},
                 cmdWaitQueue:{grup:7,title:"キューを指定時間停止し再開する",desc:"cmdPause（キュー停止）を実行し、指定時間（ミリ秒）経過後、自動的にcmdResume（キュー再開）を行います。",args:[[ARG_TYPE.int,"time","int 停止時間[msec]"]]},
+                msgPayload:{grup:9,title:"コマンド外部入力",desc:"JSON形式の外部コマンド入力( msg.payload.{\"cmd\":\"cmdLed\",\"arg\",[1,2..]} )を受付ける",args:[]},
                 cmdReboot:{grup:9,title:"モーターを再起動する",desc:"再起動した場合、モーターの接続は切断される。",args:[]},
                 cmdPosControlThreshold:{grup:9,title:"モーターの位置制御時、ID制御を有効にする偏差の絶対値を指定する",desc:"",args:[[ARG_TYPE.unsigFloat,"threshold","float [0.0 - n]（デフォルト 0.0139626f // 0.8deg）"]]},
                 cmdPositionD:{grup:9,title:"モーターの位置制御Dパラメタをセット",desc:"",args:[[ARG_TYPE.unsigFloat,"positionD","float [0.0001 - 0.2]（デフォルト 0.01）"]]},
