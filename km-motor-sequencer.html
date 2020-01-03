@@ -66,7 +66,7 @@
             };
             //todo::i18n 多言語化
             const CMD_GRUP = {
-                2: "設定", 3: "動作", 4: "情報取得", 5: "通知制御", 6: "ティーチング", 7: "タスクセット" /*,8:"PID設定"*/, 9: "その他"
+                  2: "設定",3: "動作",4: "情報取得", 5: "通知制御", 6: "ティーチング", 7: "タスクセット" /*,8:"PID設定"*/, 9: "その他"
             };
             const CMD_LISTS ={
                 connect:{grup:2,title:"モーターと接続する",desc:"本コマンドを実行しなくても、selectorノードを実行時に、モーターは自動的に接続されます。<br>意図的にモーターを切断した場合に手動接続を行う為に使用します。",args:[]},
@@ -84,12 +84,16 @@
                 cmdDisable:{grup:3,title:"モーター動作を不許可とする",desc:"安全用：この命令を入れるとモーターは動作しない。",args:[]},
                 cmdEnable:{grup:3,title:"モーター動作を許可する",desc:"安全用：この命令を入れるとモーターは動作可能となる。<br>モーター起動時はdisable状態のため、本コマンドで動作を許可する必要があり<br>コマンドはタスクセットに記録することは不可",args:[]},
                 cmdSpeed:{grup:3,title:"速度の大きさをセットする（単位系：ラジアン）",desc:"",args:[[ARG_TYPE.unsigFloat,"speed","float 速度の大きさ 単位：角度（ラジアン）/秒 [0-X rps]　(正の数)"]]},
-                cmdSpeed_rpm:{grup:3,title:"速度の大きさをセットする（単位系：RPM）",desc:"",args:[[ARG_TYPE.unsigFloat,"speed_rpm","float [0-X rpm]　(正の数)"]]},
+                cmdSpeed_rpm:{grup:3,title:"速度の大きさをセットする（単位系：rpm）",desc:"",args:[[ARG_TYPE.unsigFloat,"speed_rpm","float [0-X rpm]　(正の数)"]]},
                 cmdFree:{grup:3,title:"モーターの励磁を停止する（感触は残ります）",desc:"完全フリー状態を再現する場合は、cmdFree().cmdDisable()として下さい。",args:[]},
                 cmdMoveByDistance:{grup:3,title:"相対位置に移動する",desc:"speedの指定がnullの場合、直近の速度が引き継がれる。",args:[[ARG_TYPE.float,"distance","角度：radians[左:+radians 右:-radians]"],[ARG_TYPE.unsigFloat,"speed","速度の大きさ 単位：角度（ラジアン）/秒 [0-X rps]　(正の数)"]]},
-                cmdMoveByDistanceSync:{grup:3,title:"相対位置に移動し、移動の成否を通知する",desc:"目標座標への到着を確認してから次のコマンドに移行する。<br>負荷によっては目標座標への到着が出来ない場合がある為、<br>目標座標への到着とする範囲及びタイムリミットの判定精度はcmdNotifyPosArrivalで予め設定しておく必要がある。<br>speedの指定がnullの場合、直近の速度が引き継がれる。<br>このコマンド実行中に別の移動系のコマンドを実行すると'Instructionoverride'としてrejectされる。<br>",args:[[ARG_TYPE.float,"distance","角度：radians[左:+radians 右:-radians]"],[ARG_TYPE.unsigFloat,"speed","速度の大きさ 単位：角度（ラジアン）/秒 [0-X rps]　(正の数)"],[ARG_TYPE.unsigInt,"timeout","[0 - x ms] デフォルト 0:タイムアウト無し"]]},
-                cmdMoveToPosition:{grup:3,title:"絶対位置に移動する",desc:"speedの指定がnullの場合、直近の速度が引き継がれる。",args:[[ARG_TYPE.float,"position","角度：radians"],[ARG_TYPE.unsigFloat,"speed","速度の大きさ 単位：角度（ラジアン）/秒 [0-X rps]　(正の数)"]]},
-                cmdMoveToPositionSync:{grup:3,title:"絶対位置に移動し、移動の成否を通知する",desc:"目標座標への到着を確認してから次のコマンドに移行する。<br>負荷によっては目標座標への到着が出来ない場合がある為、<br>目標座標への到着とする範囲及びタイムリミットの判定精度はcmdNotifyPosArrivalで予め設定しておく必要がある。<br>speedの指定がnullの場合、直近の速度が引き継がれる。<br>このコマンド実行中に別の移動系のコマンドを実行すると'Instructionoverride'としてrejectされる。<br>",args:[[ARG_TYPE.float,"position","角度：radians"],[ARG_TYPE.unsigFloat,"speed","速度の大きさ 単位：角度（ラジアン）/秒 [0-X rps]　(正の数)"],[ARG_TYPE.unsigInt,"timeout","[0 - x ms] デフォルト 0:タイムアウト無し"]]},
+                cmdMoveByDistanceDeg:{grup:3,title:"相対位置に移動する（単位系：度 , rpm）",desc:"cmdMoveByDistanceの引数を degree(度) rpm としたもの",args:[[ARG_TYPE.float,"distance_deg","角度(度)：degree[左:+degree 右:-degree]"],[ARG_TYPE.unsigFloat,"speed_rpm","float [0-X rpm] (正の数)"]]},
+                cmdMoveByDistanceSync:{grup:3,title:"相対位置に移動し、移動の成否を通知する",desc:"目標座標への到着を確認してから次のノードに出力する<br>負荷によっては目標座標への到着が出来ない場合がある為、<br>目標座標への到着とする範囲及びタイムリミットの判定精度はcmdNotifyPosArrivalで予め設定しておく必要がある。<br>speedの指定がnullの場合、直近の速度が引き継がれる。<br>このコマンド実行中に別の移動系のコマンドを実行するとエラーがスローされる。<br>",args:[[ARG_TYPE.float,"distance","角度：radians[左:+radians 右:-radians]"],[ARG_TYPE.unsigFloat,"speed","速度の大きさ 単位：角度（ラジアン）/秒 [0-X rps]　(正の数)"],[ARG_TYPE.unsigInt,"timeout","[0 - x ms] デフォルト 0:タイムアウト無し"]]},
+                cmdMoveByDistanceDegSync:{grup:3,title:"相対位置に移動し、移動の成否を通知する（単位系：度 , rpm）",desc:"cmdMoveByDistanceSyncの引数を degree(度) rpm としたもの",args:[[ARG_TYPE.float,"distance_deg","角度(度)：degree[左:+degree 右:-degree]"],[ARG_TYPE.unsigFloat,"speed_rpm","float [0-X rpm] (正の数)"],[ARG_TYPE.unsigInt,"timeout","[0 - x ms] デフォルト 0:タイムアウト無し"]]},
+                cmdMoveToPosition:{grup:3,title:"絶対位置に移動する",desc:"speedの指定がnullの場合、直近の速度が引き継がれる。",args:[[ARG_TYPE.float,"position","角度：radians"],[ARG_TYPE.unsigFloat,"speed","速度の大きさ 単位：角度（ラジアン）/秒 [0-X rps] (正の数)"]]},
+                cmdMoveToPositionDeg:{grup:3,title:"絶対位置に移動する（単位系：度 , rpm）",desc:"cmdMoveToPositionの引数を degree(度) rpm としたもの",args:[[ARG_TYPE.float,"position_deg","角度(度)：degree"],[ARG_TYPE.unsigFloat,"speed_rpm","float [0-X rpm] (正の数) "]]},
+                cmdMoveToPositionSync:{grup:3,title:"絶対位置に移動し、移動の成否を通知する",desc:"目標座標への到着を確認してから次のノードに出力する。<br>負荷によっては目標座標への到着が出来ない場合がある為、<br>目標座標への到着とする範囲及びタイムリミットの判定精度はcmdNotifyPosArrivalで予め設定しておく必要がある。<br>speedの指定がnullの場合、直近の速度が引き継がれる。<br>このコマンド実行中に別の移動系のコマンドを実行するとエラーがスローされる。<br>",args:[[ARG_TYPE.float,"position","角度：radians"],[ARG_TYPE.unsigFloat,"speed","速度の大きさ 単位：角度（ラジアン）/秒 [0-X rps]　(正の数)"],[ARG_TYPE.unsigInt,"timeout","[0 - x ms] デフォルト 0:タイムアウト無し"]]},
+                cmdMoveToPositionDegSync:{grup:3,title:"絶対位置に移動し、移動の成否を通知する（単位系：度 , rpm）",desc:"cmdMoveToPositionSyncの引数を degree(度) rpm としたもの",args:[[ARG_TYPE.float,"position_deg","角度(度)：degree"],[ARG_TYPE.unsigFloat,"speed_rpm","float [0-X rpm] (正の数) "],[ARG_TYPE.unsigInt,"timeout","[0 - x ms] デフォルト 0:タイムアウト無し"]]},
                 cmdPresetPosition:{grup:3,title:"位置のプリセットを行う（原点設定）（単位系：ラジアン）",desc:"",args:[[ARG_TYPE.unsigFloat,"position","float 絶対角度：radians"]]},
                 cmdStop:{grup:3,title:"モーターを速度ゼロまで減速し停止する",desc:"rpm=0となる。",args:[]},
                 cmdRun:{grup:3,title:"モーターを指定速度で回転させる",desc:"",args:[[ARG_TYPE.float,"speed","float 速度の大きさ 単位：角度（ラジアン）/秒 [±X rps]"]]},
@@ -138,8 +142,10 @@
                 cmdResetPID:{grup:9,title:"全てのPIDパラメータをリセットしてファームウェアの初期設定に戻す",desc:"qCurrentP,qCurrentI,qCurrentD,speedP,speedI,speedD,positionPをリセットする。",args:[]},
                 cmdSpeedD:{grup:9,title:"モーターの速度PIDコントローラのD（微分）ゲインを設定する",desc:"",args:[[ARG_TYPE.unsigFloat,"speedD","float 速度Dゲイン（正の値）"]]},
                 cmdSpeedI:{grup:9,title:"モーターの速度PIDコントローラのI（積分）ゲインを設定する",desc:"",args:[[ARG_TYPE.unsigFloat,"speedI","float 速度Iゲイン（正の値）"]]},
-                cmdSpeedP:{grup:9,title:"モーターのq軸電流PIDコントローラのD（微分）ゲインを設定する",desc:"",args:[[ARG_TYPE.unsigFloat,"speedP","float 速度Pゲイン（正の値）"]]}
-            };
+                cmdSpeedP:{grup:9,title:"モーターのq軸電流PIDコントローラのD（微分）ゲインを設定する",desc:"",args:[[ARG_TYPE.unsigFloat,"speedP","float 速度Pゲイン（正の値）"]]},
+                cmdPlaybackInterval:{grup:6,title:"記憶再生時の再生間隔",desc:"記憶再生時の再生間隔。",args:[[ARG_TYPE.unsigInt,"interval","ms（2-1000 0, 1msはエラーとなる）"]]},
+                cmdTeachingInterval:{grup:6,title:"ダイレクトティーチングのサンプリング間隔",desc:"ティーチング・プレイバックの実行間隔。",args:[[ARG_TYPE. int,"interval","ms（2-1000 0, 1msはエラーとなる）"]]},
+              };
 
             function _selectGrupTab(num){
                 let nm=parseInt(num);

@@ -11,7 +11,6 @@ sequencerEvent.on("error", (err) => {
 const MSG_TYPE={
     EXE_SUCCESS:{type:0,msg:"success"},
     MOTOR_NOTIFY:{type:10,msg:"Motor Notify"},
-
     UNEXPECTED_ERR:{type:100,msg:"Unexpected Err"},
     MOTOR_NOTFOUND:{type:101,msg:"Motor NotFound"},
     COMMAND_NOTFOUND:{type:102,msg:"Command NotFound"},
@@ -22,7 +21,22 @@ const MSG_TYPE={
     CONNECT_FAILURE:{type:107,msg:"Connect Failure"}
 };
 
+function toNumber(val, defaultval = 0) {
+    let v = parseFloat(val, 10);
+    return (!isFinite(v) ? defaultval : v);
+}
+function toIntNumber(val, defaultval = 0) {
+    let v = parseInt(val, 10);
+    return (!isFinite(v) ? defaultval : v);
+}
 
+function degreeToRadian(degree) {
+    return toNumber(degree) * 0.017453292519943295;
+}
+
+function rpmToRadianSec(rpm) {
+    return toNumber(rpm) * 0.10471975511965977;
+}
 /////
 module.exports = function(RED) {
     /*-------------------------------
@@ -207,29 +221,55 @@ module.exports = function(RED) {
                         node._err(MSG_TYPE.MOTOR_IS_NOT_CONNECTED,cmdObj,node.targetMotor.deviceInfo.name);
                         return;
                     }
-                    //全ての関数が実行出来る為、cmdのみに制限を加える
-                    else if (cmdObj.cmd.indexOf("cmd") === 0 && (typeof node.targetMotor[cmdObj.cmd]) === 'function') {
 
+                    //全ての関数が実行出来る為、cmdのみに制限を加える
+                    if (cmdObj.cmd.indexOf("cmd") === 0) {
                         //info::コマンドの引数が"msg.payload"の場合、コマンドの引数をmsg.payloadから受付
                         let _impArg=(cmdObj.arg&&cmdObj.arg==="msg.payload")?msg.payload:cmdObj.arg;
                         let arg = Array.isArray(_impArg) ? _impArg : (typeof _impArg === "string" ? _impArg.split(',') : [_impArg]);
 
-                        let exeCmd=Object.assign({},cmdObj,{"arg":arg});
-                        let res = node.targetMotor[exeCmd.cmd](...exeCmd.arg);
-                        //返り値のあるコマンド
-                        if(res instanceof Promise){
-                            res.then((val) => {
-                                node._comp(exeCmd,null,val);
-                            }).catch((msg) => {
-                                node._err(MSG_TYPE.COMMAND_RES_ERR,exeCmd,msg);
-                            });
-                        }else{
-                            node._comp(exeCmd);
+                        //node-red固有のラッパー関数の処理
+                        switch (cmdObj.cmd){
+                            case "cmdMoveByDistanceDeg":
+                                cmdObj.cmd="cmdMoveByDistance";
+                                arg[0]=degreeToRadian(arg[0]);
+                                arg[1]=rpmToRadianSec(arg[1]);
+                                break;
+                            case "cmdMoveByDistanceDegSync":
+                                cmdObj.cmd="cmdMoveByDistanceSync";
+                                arg[0]=degreeToRadian(arg[0]);
+                                arg[1]=rpmToRadianSec(arg[1]);
+                                break;
+                            case "cmdMoveToPositionDeg":
+                                cmdObj.cmd="cmdMoveToPosition";
+                                arg[0]=degreeToRadian(arg[0]);
+                                arg[1]=rpmToRadianSec(arg[1]);
+                                break;
+                            case "cmdMoveToPositionDegSync":
+                                cmdObj.cmd="cmdMoveToPositionSync";
+                                arg[0]=degreeToRadian(arg[0]);
+                                arg[1]=rpmToRadianSec(arg[1]);
+                                break;
                         }
-                        return;
+
+                        if((typeof node.targetMotor[cmdObj.cmd]) === 'function'){
+                            let exeCmd=Object.assign({},cmdObj,{"arg":arg});
+                            let res = node.targetMotor[exeCmd.cmd](...exeCmd.arg);
+                            //返り値のあるコマンド
+                            if(res instanceof Promise){
+                                res.then((val) => {
+                                    node._comp(exeCmd,null,val);
+                                }).catch((msg) => {
+                                    node._err(MSG_TYPE.COMMAND_RES_ERR,exeCmd,msg);
+                                });
+                            }else{
+                                node._comp(exeCmd);
+                            }
+                        }else {
+                            node._err(MSG_TYPE.COMMAND_ERR,cmdObj);
+                        }
                     } else {
                         node._err(MSG_TYPE.COMMAND_ERR,cmdObj);
-                        return;
                     }
                 }
 
