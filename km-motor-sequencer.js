@@ -161,8 +161,7 @@ module.exports = function(RED) {
         node.on('input', function(msg) {
             node.msg = msg;
             //info::ノード自体のコマンド設定が"msg.payload"の場合のみ外部コマンド(msg.payload.{"cmd":"hoge","arg",[1,2..]})を受付ける
-            let cmdObj = node.cmdJson === "msg.payload" ? msg.payload : node.cmdJson;
-
+            let cmdObj = node.cmdJson === "msg.payload" ? msg.payload : Object.assign({},node.cmdJson);
             try {
                 //モーター参照を伴わない入力処理は一切行わない
                 if (typeof msg.motor !== "object" || !msg.motor) {
