@@ -225,7 +225,7 @@ module.exports = function(RED) {
                     if (cmdObj.cmd.indexOf("cmd") === 0) {
                         //info::コマンドの引数が"msg.payload"の場合、コマンドの引数をmsg.payloadから受付
                         let _impArg=(cmdObj.arg&&cmdObj.arg==="msg.payload")?msg.payload:cmdObj.arg;
-                        let arg = Array.isArray(_impArg) ? _impArg : (typeof _impArg === "string" ? _impArg.split(',') : [_impArg]);
+                        let arg = Array.isArray(_impArg) ? _impArg.concat() : (typeof _impArg === "string" ? _impArg.split(',') : [_impArg]);
 
                         //node-red固有のラッパー関数の処理
                         switch (cmdObj.cmd){
