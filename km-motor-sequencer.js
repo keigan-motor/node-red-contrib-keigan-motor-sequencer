@@ -220,7 +220,6 @@ module.exports = function(RED) {
                         node._err(MSG_TYPE.MOTOR_IS_NOT_CONNECTED,cmdObj,node.targetMotor.deviceInfo.name);
                         return;
                     }
-
                     //全ての関数が実行出来る為、cmdのみに制限を加える
                     if (cmdObj.cmd.indexOf("cmd") === 0) {
                         //info::コマンドの引数が"msg.payload"の場合、コマンドの引数をmsg.payloadから受付

@@ -109,10 +109,12 @@
                 onImuMeasurement:{grup:5,title:"モーターのジャイロ情報を定期的に取得する",desc:"別途cmdEnableIMUMeasurementを実行して通知を開始する必要がある。",args:[]},
                 onMotorLog:{grup:5,title:"モーターのログ情報を定期的に取得する",desc:"ログ情報はoutputからコマンド実行毎に通知される。",args:[]},
                 onMotorMeasurement:{grup:5,title:"モーターの回転情報を定期的に取得する",desc:"回転情報はoutputから定期的(10ms〜100ms)毎に通知される。",args:[]},
-                cmdDisableIMUMeasurement:{grup:5,title:"IMU(ジャイロ)の値取得(通知)を停止する",desc:"",args:[]},
-                cmdEnableIMUMeasurement:{grup:5,title:"IMU(ジャイロ)の値取得(通知)を開始する",desc:"本コマンドを実行すると、onImuMeasurementへの通知が開始される。",args:[]},
-                cmdIMUMeasurementInterval:{grup:5,title:"IMU(ジャイロ)の測定値の取得間隔",desc:"有線（USB,I2C）のみ有効。BLEでは固定100ms間隔で通知される。",args:[[ARG_TYPE. cmdIMUMeasurementInterval_IMU_MEAS_INTERVAL,"Interval","加速度・ジャイロ測定値の取得間隔オプション"]]},
-                cmdMotorMeasurementInterval:{grup:5,title:"モーター測定値の取得間隔設定",desc:"有線（USB,I2C）のみ有効。BLEでは固定100ms間隔で通知される。",args:[[ARG_TYPE.cmdMotorMeasurementInterval_MOTOR_MEAS_INTERVAL,"Interval","モーター測定値の取得間隔"]]},
+                cmdEnableMotorMeasurement:{grup:5,title:"モーターの回転情報の出力を開始する",desc:"",args:[]},
+                cmdDisableMotorMeasurement:{grup:5,title:"モーターの回転情報の出力を停止する",desc:"",args:[]},
+                cmdDisableIMUMeasurement:{grup:5,title:"ジャイロの値取得(通知)を停止する",desc:"",args:[]},
+                cmdEnableIMUMeasurement:{grup:5,title:"ジャイロの値取得(通知)を開始する",desc:"本コマンドを実行すると、onImuMeasurementへの通知が開始される。",args:[]},
+                cmdIMUMeasurementInterval:{grup:5,title:"ジャイロの測定値の取得間隔",desc:"有線（USB,I2C）のみ有効。BLEでは固定100ms間隔で通知される。<br>設定を反映するには、設定後にcmdEnableIMUMeasurementを再実行する必要がある。",args:[[ARG_TYPE. cmdIMUMeasurementInterval_IMU_MEAS_INTERVAL,"Interval","加速度・ジャイロ測定値の取得間隔オプション"]]},
+                cmdMotorMeasurementInterval:{grup:5,title:"モーター測定値の取得間隔設定",desc:"有線（USB,I2C）のみ有効。BLEでは固定100ms間隔で通知される。<br>設定を反映するには、設定後にcmdEnableMotorMeasurementを再実行する必要がある。",args:[[ARG_TYPE.cmdMotorMeasurementInterval_MOTOR_MEAS_INTERVAL,"Interval","モーター測定値の取得間隔"]]},
                 cmdNotifyPosArrival:{grup:5,title:"位置制御時、目標位置に到達時、判定条件を満たした場合通知を行う。",desc:"判定条件：tolerance内に位置が入っている状態が、settleTime連続で続くと、通知(KM_SUCCESS_ARRIVAL)が一回行われる。<br>tolerance内に位置が入っている状態が、settleTimeの間連続で続くと通知がトリガーされる。<br>toleranceに一瞬でも入ってsettleTime未満で出ると通知トリガーは削除され、通知は行われない。<br>toleranceに一度も入らない場合、通知トリガーは残り続ける。(トリガーの明示的な消去はcmdNotifyPosArrival(0,0,0))<br>再度notifyPosArrivalで設定を行うと、以前の通知トリガーは消える。<br>",args:[[ARG_TYPE.bool,"isEnabled","0:無効, 1:有効"],[ARG_TYPE.unsigFloat,"tolerance","[0.0 - n] 許容誤差 radian (0.00174533 ≒ 0.1deg)"],[ARG_TYPE.unsigInt,"settleTime","[0 - n] 判定時間 ミリ秒 (デフォルト 200ms)"]]},
                 cmdResponse:{grup:5,title:"コマンドを受信したときに成功通知（errorCode = 0）をするかどうか",desc:"",args:[[ARG_TYPE.bool,"isEnabled","0:無効, 1:有効"]]},
                 cmdEraseAllMotion:{grup:6,title:"ティーチングで覚えた全動作を削除する",desc:"",args:[]},
@@ -144,8 +146,8 @@
                 cmdSpeedI:{grup:9,title:"モーターの速度PIDコントローラのI（積分）ゲインを設定する",desc:"",args:[[ARG_TYPE.unsigFloat,"speedI","float 速度Iゲイン（正の値）"]]},
                 cmdSpeedP:{grup:9,title:"モーターのq軸電流PIDコントローラのD（微分）ゲインを設定する",desc:"",args:[[ARG_TYPE.unsigFloat,"speedP","float 速度Pゲイン（正の値）"]]},
                 cmdPlaybackInterval:{grup:6,title:"記憶再生時の再生間隔",desc:"記憶再生時の再生間隔。",args:[[ARG_TYPE.unsigInt,"interval","ms（2-1000 0, 1msはエラーとなる）"]]},
-                cmdTeachingInterval:{grup:6,title:"ダイレクトティーチングのサンプリング間隔",desc:"ティーチング・プレイバックの実行間隔。",args:[[ARG_TYPE. int,"interval","ms（2-1000 0, 1msはエラーとなる）"]]},
-              };
+                cmdTeachingInterval:{grup:6,title:"ダイレクトティーチングのサンプリング間隔",desc:"ティーチング・プレイバックの実行間隔。",args:[[ARG_TYPE. int,"interval","ms（2-1000 0, 1msはエラーとなる）"]]}
+            };
 
             function _selectGrupTab(num){
                 let nm=parseInt(num);
