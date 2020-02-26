@@ -80,7 +80,11 @@ module.exports = function(RED) {
 
         //モーターの回転情報
         node._motorMeasurementLis=function(kMRotState){
-            node._notify({cmd:"motorMeasurement"},kMRotState.GetValObj());
+           let valkMRotState=kMRotState.GetValObj();
+            //info::node-red用に degree rpm 追加 (有効桁数 小数第3位)
+            valkMRotState.degree=Math.floor(KMConnector.KMUtl.toNumber(valkMRotState.position/0.017453292519943295)*1000)/1000;
+            valkMRotState.rpm=Math.floor(KMConnector.KMUtl.toNumber(valkMRotState.velocity/0.10471975511965977)*1000)/1000;
+            node._notify({cmd:"motorMeasurement"},valkMRotState);
         };
         //モーターIMU情報受信
         node._imuMeasurementLis=function(kMImuState){
